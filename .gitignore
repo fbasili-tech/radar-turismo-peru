@@ -1,0 +1,17 @@
+﻿.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.streamlit/secrets.toml
+
+app/app_backup*.py
+app/app_RADAR_V1_VALIDADA.py
+app/app_RADAR_PERU_V1_CERRADA.py
+app/modules_RADAR_V1_VALIDADA/
+app/modules_RADAR_PERU_V1_CERRADA/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
