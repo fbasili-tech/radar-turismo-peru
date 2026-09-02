@@ -7,6 +7,266 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+
+# === RADAR_ANALYTICS_73D5_START ===
+# Analítica anónima de uso del RADAR de Regiones.
+#
+# Esta capa NO modifica:
+# - metodología
+# - indicadores
+# - índices
+# - rankings
+# - resultados territoriales
+
+import uuid as _radar_uuid
+import requests as _radar_requests
+
+
+_RADAR_ANALYTICS_URL = (
+    "https://hfuwbzynzmudxeaokkad.supabase.co"
+    "/rest/v1/radar_analytics"
+)
+
+
+_RADAR_ANALYTICS_ANON_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmdXdienluem11ZHhlYW9ra2FkIiw"
+    "icm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNTkwMTksImV4cCI6MjEwMzkzNTAxOX0."
+    "mMBMzDVuwVSjY_l7US__YNWiDtRz5bvV8mJkaRBw9xs"
+)
+
+
+_RADAR_ANALYTICS_ID = (
+    "RADAR_REGIONES"
+)
+
+
+def _radar_registrar_evento(
+    evento,
+    seccion=None,
+    territorio=None,
+):
+    """
+    Registra un evento anónimo.
+    La analítica nunca debe detener
+    el funcionamiento de la aplicación.
+    """
+
+    try:
+
+        if (
+            "_radar_session_id"
+            not in st.session_state
+        ):
+
+            st.session_state[
+                "_radar_session_id"
+            ] = (
+                "SES_"
+                + _radar_uuid.uuid4().hex
+            )
+
+        payload = {
+
+            "session_id":
+                st.session_state[
+                    "_radar_session_id"
+                ],
+
+            "radar":
+                _RADAR_ANALYTICS_ID,
+
+            "evento":
+                str(evento),
+
+            "seccion":
+                (
+                    None
+                    if seccion is None
+                    else str(seccion)
+                ),
+
+            "territorio":
+                (
+                    None
+                    if territorio is None
+                    else str(territorio)
+                ),
+        }
+
+        headers = {
+
+            "apikey":
+                _RADAR_ANALYTICS_ANON_KEY,
+
+            "Authorization":
+                (
+                    "Bearer "
+                    + _RADAR_ANALYTICS_ANON_KEY
+                ),
+
+            "Content-Type":
+                "application/json",
+
+            "Prefer":
+                "return=minimal",
+        }
+
+        _radar_requests.post(
+
+            _RADAR_ANALYTICS_URL,
+
+            headers=headers,
+
+            json=payload,
+
+            timeout=2.5,
+        )
+
+    except Exception:
+
+        pass
+
+
+def _radar_registrar_inicio_sesion():
+
+    if not st.session_state.get(
+        "_radar_visita_registrada",
+        False,
+    ):
+
+        _radar_registrar_evento(
+
+            "VISITA_APP",
+
+            seccion="INICIO",
+        )
+
+        st.session_state[
+            "_radar_visita_registrada"
+        ] = True
+
+
+def _radar_registrar_cambio(
+    clave_estado,
+    evento,
+    valor,
+    seccion=None,
+    usar_como_territorio=False,
+):
+    """
+    Registra un evento solamente
+    cuando el valor cambia.
+    """
+
+    if valor is None:
+
+        return
+
+    valor_texto = str(
+        valor
+    ).strip()
+
+    if not valor_texto:
+
+        return
+
+    anterior = (
+        st.session_state.get(
+            clave_estado
+        )
+    )
+
+    if anterior == valor_texto:
+
+        return
+
+    if usar_como_territorio:
+
+        _radar_registrar_evento(
+
+            evento,
+
+            seccion=seccion,
+
+            territorio=valor_texto,
+        )
+
+    else:
+
+        _radar_registrar_evento(
+
+            evento,
+
+            seccion=(
+                valor_texto
+                if seccion is None
+                else seccion
+            ),
+
+            territorio=None,
+        )
+
+    st.session_state[
+        clave_estado
+    ] = valor_texto
+
+
+def _radar_registrar_perfil(
+    valor,
+):
+
+    _radar_registrar_cambio(
+
+        "_radar_ultimo_perfil",
+
+        "SELECCIONA_PERFIL_USUARIO",
+
+        valor,
+
+        seccion="PERFIL_USO",
+    )
+
+
+def _radar_registrar_indicador_mapa(
+    valor,
+):
+
+    _radar_registrar_cambio(
+
+        "_radar_ultimo_indicador_mapa",
+
+        "SELECCIONA_INDICADOR_MAPA",
+
+        valor,
+
+        seccion="MAPA_NACIONAL",
+    )
+
+
+def _radar_registrar_departamento(
+    valor,
+):
+
+    _radar_registrar_cambio(
+
+        "_radar_ultimo_departamento",
+
+        "SELECCIONA_DEPARTAMENTO",
+
+        valor,
+
+        seccion="INTELIGENCIA_TERRITORIAL",
+
+        usar_como_territorio=True,
+    )
+
+
+_radar_registrar_inicio_sesion()
+
+# === RADAR_ANALYTICS_73D5_END ===
+
+
 import folium
 from folium.features import GeoJson, GeoJsonTooltip
 from branca.colormap import linear
@@ -758,6 +1018,8 @@ with st.sidebar:
         ]
     )
 
+    _radar_registrar_perfil(perfil_usuario)
+
     st.divider()
 
     st.markdown(
@@ -1054,6 +1316,8 @@ indicador_mapa = st.selectbox(
     ),
     key="indicador_mapa"
 )
+
+_radar_registrar_indicador_mapa(indicador_mapa)
 
 
 columna_mapa = opciones_mapa[
@@ -1598,6 +1862,8 @@ territorio_selector = st.selectbox(
     departamentos,
     key="territorio_selector"
 )
+
+_radar_registrar_departamento(territorio_selector)
 
 
 if (
